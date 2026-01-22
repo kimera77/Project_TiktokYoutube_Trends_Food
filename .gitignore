@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Entorno virtual
+venv/
+env/
+ENV/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Datos y archivos grandes (opcional - descomenta si no quieres subirlos)
+# *.csv
+# *.xlsx
+# *.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Distribución / empaquetado
+dist/
+build/
+*.egg-info/
