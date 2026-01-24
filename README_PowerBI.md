@@ -6,48 +6,18 @@ Crear un dashboard interactivo en Power BI para analizar tendencias de contenido
 ---
 
 ## 📥 1. TRATAMIENTO DE DATOS EN POWER BI
-
-### 1.1 Carga de Datos
-```powerquery
-// Cargar CSV limpio desde ETL
-let
-    Source = Csv.Document(File.Contents("C:\...\food_videos_2025_clean.csv")),
-    PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
-    ChangedType = Table.TransformColumnTypes(PromotedHeaders, {
-        {"views", Int64.Type},
-        {"likes", Int64.Type},
-        {"comments", Int64.Type},
-        {"shares", Int64.Type},
-        {"saves", Int64.Type},
-        {"duration_sec", Int64.Type},
-        {"engagement_rate", type number},
-        {"completion_rate", type number},
-        {"publish_date_approx", type date}
-    })
-in
-    ChangedType
-```
-
-### 1.2 Power Query - Transformaciones Adicionales
-
-**A. Crear tabla de calendario (Date Table)**
-```powerquery
-let
-    StartDate = #date(2025, 1, 1),
-    EndDate = #date(2025, 12, 31),
-    NumberOfDays = Duration.Days(EndDate - StartDate) + 1,
-    Dates = List.Dates(StartDate, NumberOfDays, #duration(1,0,0,0)),
-    DateTable = Table.FromList(Dates, Splitter.SplitByNothing(), {"Date"}),
-    AddYear = Table.AddColumn(DateTable, "Year", each Date.Year([Date])),
-    AddMonth = Table.AddColumn(AddYear, "Month", each Date.Month([Date])),
-    AddMonthName = Table.AddColumn(AddMonth, "Month Name", each Date.MonthName([Date])),
-    AddQuarter = Table.AddColumn(AddMonthName, "Quarter", each "Q" & Text.From(Date.QuarterOfYear([Date]))),
-    AddWeek = Table.AddColumn(AddQuarter, "Week", each Date.WeekOfYear([Date])),
-    AddDayName = Table.AddColumn(AddWeek, "Day Name", each Date.DayOfWeekName([Date])),
-    AddDayOfWeek = Table.AddColumn(AddDayName, "Day Number", each Date.DayOfWeek([Date], Day.Monday) + 1)
-in
-    AddDayOfWeek
-```
+DimDate = 
+ADDCOLUMNS (
+    CALENDAR (DATE(2025,1,1), DATE(2025,12,31)),
+    "Year", YEAR([Date]),
+    "Month", MONTH([Date]),
+    "Month Name", FORMAT([Date], "MMMM"),
+    "Quarter", "Q" & FORMAT([Date], "0"),
+    "Week", WEEKNUM([Date], 2),
+    "Day", DAY([Date]),
+    "Day Name", FORMAT([Date], "dddd"),
+    "DayOfWeek", WEEKDAY([Date], 2)
+)
 
 **B. Categorización de métricas de engagement**
 ```powerquery
