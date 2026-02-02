@@ -1,0 +1,3 @@
+embeddings_model: all-MiniLM-L6-v2
+features_count: 22
+feature_names: title_length,title_word_count,title_emoji_count,title_hashtag_count,title_uppercase_ratio,title_sentiment,desc_length,desc_word_count,desc_has_link,desc_sentiment,publish_hour,publish_day_of_week,publish_month,is_weekend,tag_count,duration_sec,category_id,caption_bool,licensed_bool,hd_bool,made_for_kids,log_subscribers

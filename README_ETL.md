@@ -1,186 +1,131 @@
-# 📊 ETL - TikTok/YouTube 2025 Dataset
- 
-## 🎯 OBJECTIVE
-Clean and prepare the TikTok/YouTube 2025 dataset focused on **food** content for Power BI analysis.
+# 📊 ETL Process - TikTok/YouTube Food Videos 2025
+
+## 🎯 Objective
+Clean and prepare the TikTok/YouTube 2025 dataset focused on **food content** for Power BI analysis and visualization.
 
 ---
 
-## 🗑️ 1. COLUMNS TO DROP (Redundant or Unnecessary)
+## 📦 Data Source
 
-### Duplicate/redundant columns:
-- `engagement_rate` → Keep the specific ones (like_rate, comment_ratio, etc.)
-- `engagement_like_rate` → **DUPLICATE** of `like_rate`
-- `engagement_comment_rate` → **DUPLICATE** of `comment_ratio`
-- `engagement_share_rate` → **DUPLICATE** of `share_rate`
+The dataset is sourced from **Hugging Face** and contains short-form video trends from both TikTok and YouTube platforms throughout 2025. The original dataset includes approximately 60 columns with comprehensive metrics about video performance, creator information, temporal patterns, and engagement statistics across multiple countries and regions.
 
-### Synthetic/low-value columns for Power BI:
+**Original Dataset**: Contains videos from various genres (Food, Gaming, Beauty, etc.)  
+**Filtered Dataset**: Only videos categorized as "Food" genre for this project  
+**Records**: ~1,790 food-related videos after filtering
+
+---
+
+## 🔧 ETL Process
+
+### 1. Data Extraction
+- Load dataset from Hugging Face using `datasets` library
+- Initial exploration: 60+ columns with mixed data types
+- Filter records where `genre` contains "Food"
+
+### 2. Columns Removed
+The following columns were identified as redundant or low-value for Power BI analysis:
+
+**Duplicate columns**:
+- `engagement_like_rate` → Duplicate of `like_rate`
+- `engagement_comment_rate` → Duplicate of `comment_ratio`
+- `engagement_share_rate` → Duplicate of `share_rate`
+
+**Synthetic/low-value columns**:
 - `sample_comments` → Synthetic comments with no analytical value
-- `notes` → No description, likely empty
-- `source_hint` → No description
-- `trend_label` → No description
+- `notes` → Empty or no description
+- `source_hint` → No description available
+- `trend_label` → No description available
 
-### Unnecessary technical columns:
-- `row_id` → MD5 primary key, doesn't contribute to business metrics
+**Technical columns**:
+- `row_id` → MD5 hash used as primary key, not relevant for business analysis
 
-**Total to drop: ~9 columns**
+**Total removed**: ~9 columns
 
----
+### 3. Data Transformations
 
-## 🔧 2. TRANSFORMATIONS AND CLEANING
+**Date Processing**:
+- Convert `publish_date_approx` to datetime format
+- Extract `year_month` for time-series aggregation
+- Extract `publish_dayofweek` as readable day name
+- Validate all dates are within 2025 range
 
-### Dates:
-- Convert `publish_date_approx` to datetime type
-- Extract month, readable day of week
-- Validate that all dates are within 2025
+**Filtering & Categorization**:
+- Filter only videos where `genre` = "Food"
+- Normalize `platform` values (TikTok/YouTube)
+- Normalize `country` codes to ISO-2 uppercase format
+- Standardize `device_type` values (Android/iOS/Web)
 
-### Categorization:
-- **Filter only food videos**: `genre` contains "Food" or related categories
-- Normalize `platform`: Verify unique values (TikTok/YouTube)
-- Normalize `country`: ISO-2 codes in uppercase
-- `device_type`: Group if inconsistent values exist
+**Data Quality & Cleaning**:
+- Remove records with `views = 0` (prevents division by zero errors)
+- Validate `completion_rate` is between 0-1
+- Validate `duration_sec` is within 5-90 seconds range
+- Validate `upload_hour` is between 0-23
+- Handle null values in critical columns
+- Identify and remove duplicate records
 
-### Clean calculated metrics:
-- `completion_rate`: Validate between 0-1 (or 0-100%)
-- `engagement_per_1k`: Verify correct calculation
-- Remove rows with `views = 0` (division by zero)
+**Calculated Metrics Validation**:
+- Verify `engagement_per_1k` calculation
+- Verify `engagement_rate` formula
+- Verify `like_rate`, `comment_ratio`, `share_rate` calculations
+- Ensure all engagement metrics are properly normalized
 
-### Duplicates:
-- Validate duplicates by `row_id` or key field combination
+### 4. Final Dataset Structure (~40-45 columns)
 
----
-
-## ✅ 3. QUALITY VALIDATIONS
-
-- **Nulls**: Identify and handle null values in key columns
-- **Outliers**: Detect atypical values in views, likes, duration_sec
-- **Valid ranges**: 
-  - `duration_sec`: 5-90 seconds
-  - `upload_hour`: 0-23
-  - `week_of_year`: 1-53
-  - `engagement_rate`: 0-1
-
----
-
-## 📊 4. FINAL COLUMNS OPTIMIZED FOR POWER BI
-
-### Main dimensions:
+**Dimensions** (for filtering and grouping):
 - `platform`, `country`, `region`, `language`, `genre`, `category`
-- `author_handle`, `creator_tier`
+- `author_handle`, `creator_tier` (Micro/Mid/Macro/Star)
 - `publish_date_approx`, `year_month`, `week_of_year`, `publish_dayofweek`, `publish_period`
 - `device_type`, `device_brand`, `traffic_source`
 - `event_season`, `season`, `is_weekend`
 
-### Main metrics:
-- `views`, `likes`, `comments`, `shares`, `saves`, `dislikes`
-- `duration_sec`, `avg_watch_time_sec`, `completion_rate`
-- `engagement_total`, `engagement_per_1k`
-- `like_rate`, `comment_ratio`, `share_rate`, `like_dislike_ratio`
-- `trend_duration_days`, `engagement_velocity`
-- `creator_avg_views`
+**Metrics** (for calculations and aggregations):
+- **Views & Engagement**: `views`, `likes`, `comments`, `shares`, `saves`, `dislikes`
+- **Duration & Watch Time**: `duration_sec`, `avg_watch_time_sec`, `completion_rate`
+- **Engagement Metrics**: `engagement_total`, `engagement_per_1k`
+- **Engagement Rates**: `like_rate`, `comment_ratio`, `share_rate`, `like_dislike_ratio`
+- **Trend Metrics**: `trend_duration_days`, `engagement_velocity`
+- **Creator Metrics**: `creator_avg_views`
 
-### Metadata:
+**Metadata** (descriptive information):
 - `title`, `title_length`, `has_emoji`, `hashtag`, `tags`
 
-**Estimated: ~40-45 useful columns** (vs ~60 original)
+### 5. Data Export
+- Save cleaned dataset as CSV with UTF-8 encoding for Power BI compatibility
+- Ensure proper handling of special characters and emojis
+- Optional: Create Excel file with multiple sheets (data + data dictionary)
 
 ---
 
-## 💾 5. EXPORT
+## 📈 Key Metrics for Power BI Dashboards
 
-- Save clean CSV for Power BI
-- Optional: Create Excel with multiple sheets (data + dictionary)
-- UTF-8 encoding for special characters
+### Primary KPIs:
+- **Total Views**: Sum of all video views
+- **Total Engagement**: Sum of likes + comments + shares + saves
+- **Engagement Rate**: Average engagement as percentage of views
+- **Completion Rate**: Average watch time vs. video duration
+- **Average Watch Time**: Mean time users spend watching videos
 
----
-
-## 📝 DICCIONARIO DE DATOS
-
-| Column | Description |
-|--------|-------------|
-| platform | Platform (TikTok/YouTube) |
-| country | Country ISO-2 code |
-| region | Region macro label (if available) |
-| language | Primary language inferred from country (fallback to 'en') |
-| category | Video category (if available) |
-| hashtag | Primary hashtag aligned with genre |
-| title_keywords | Short realistic title-like keywords |
-| author_handle | Creator handle/channel (brand-like, synthetic) |
-| sound_type | Sound type (if present) |
-| music_track | Music track (if present) |
-| week_of_year | ISO week number (1–53) |
-| duration_sec | Shorts-style duration in seconds (TikTok ~5–75, YouTube ~5–90) |
-| views | Total views |
-| likes | Likes count |
-| comments | Comments count |
-| shares | Shares count |
-| saves | Saves count |
-| engagement_rate | (likes+comments+shares+saves) / views |
-| trend_label | No description available |
-| source_hint | No description available |
-| notes | No description available |
-| device_type | Android/iOS/Web |
-| upload_hour | Hour of day video published (0–23) |
-| genre | Canonical content genre |
-| trend_duration_days | Days the video remained trending (synthetic) |
-| trend_type | Short (≤7), Medium (8–21), Evergreen (≥22) |
-| engagement_velocity | views / trend_duration_days |
-| dislikes | Dislikes (synthetic, platform-aware) |
-| comment_ratio | comments / views |
-| share_rate | shares / views |
-| save_rate | saves / views |
-| like_dislike_ratio | likes / (dislikes+1) |
-| publish_dayofweek | Day of week of publish_date |
-| publish_period | Part of day bucket (Morning/Afternoon/Evening/Night) |
-| event_season | Seasonal/contextual event (Ramadan, SummerBreak, BackToSchool, HolidaySeason, None) |
-| tags | YouTube-like comma-separated tags aligned with genre |
-| sample_comments | One short synthetic multilingual comment |
-| creator_avg_views | Avg views per video for the creator (across dataset rows) |
-| creator_tier | Creator tier based on avg views: Micro / Mid / Macro / Star |
-| season | Climatological season (Winter/Spring/Summer/Fall) |
-| publish_date_approx | ISO date reconstructed/approximated within 2025 (clipped to 2025-09-12) |
-| year_month | Publish year-month for time-series aggregation |
-| title | Short realistic video title (synthetic) |
-| title_length | Character count of title |
-| has_emoji | Whether title contains emoji (1/0) |
-| avg_watch_time_sec | Estimated average watch time (seconds) |
-| completion_rate | avg_watch_time_sec / duration_sec |
-| device_brand | If mobile: device brand (iPhone, Samsung, Huawei, Xiaomi, Oppo, Vivo, Pixel, Other); Web → Desktop |
-| traffic_source | Coarse discovery source (TikTok: ForYou/Following/Search/External; YouTube: Home/Suggested/Search/External) |
-| is_weekend | Publish on Fri/Sat/Sun = 1 |
-| row_id | Deterministic MD5 over [platform, country, author_handle, title, publish_date_approx, duration_sec] (primary key) |
-| engagement_total | likes + comments + shares + saves |
-| like_rate | likes / views |
-| dislike_rate | dislikes / views |
-| engagement_per_1k | Total engagements per 1,000 views |
-| engagement_like_rate | Likes divided by Views; NaN when Views <= 0 |
-| engagement_comment_rate | Comments divided by Views; NaN when Views <= 0 |
-| engagement_share_rate | Shares divided by Views; NaN when Views <= 0 |
+### Suggested Analysis Dimensions:
+- **Platform Comparison**: TikTok vs YouTube performance metrics
+- **Geographic Trends**: Performance by country and region
+- **Creator Performance**: Analysis by creator tier (Micro/Mid/Macro/Star)
+- **Temporal Patterns**: Trends by day of week, hour, season, and special events
+- **Device & Traffic**: Engagement by device type and traffic source
+- **Content Analysis**: Title length, emoji usage, hashtag effectiveness
 
 ---
 
-## 🚀 IMPLEMENTATION STEPS
+## 🚀 Implementation Steps
 
 1. ✅ Load data from Hugging Face
-2. ✅ Filter "Food" genre
-3. ✅ Remove redundant columns
+2. ✅ Filter "Food" genre videos
+3. ✅ Remove redundant and low-value columns
 4. ✅ Data cleaning and quality validations
-5. ✅ Date and category transformations
-6. ✅ Export to CSV/Excel for Power BI
+5. ✅ Date transformations and feature extraction
+6. ✅ Export clean dataset to CSV for Power BI
 
 ---
 
-## 📈 KEY METRICS FOR POWER BI
-
-### Main KPIs:
-- Total Views
-- Total Engagement (likes + comments + shares + saves)
-- Engagement Rate
-- Completion Rate
-- Average Watch Time
-
-### Suggested Analysis:
-- TikTok vs YouTube comparison
-- Trending by country/region
-- Performance by creator_tier
-- Temporal patterns (day of week, hour, season)
-- Engagement by device type and traffic source
+## 📋 Files Generated
+- `dataset_ML_food.csv` - Clean dataset ready for Power BI
+- `DATA_DICTIONARY.csv` - Column definitions and descriptions
