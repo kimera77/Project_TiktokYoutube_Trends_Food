@@ -1,0 +1,20 @@
+{
+    "model_type": "LightGBM Classifier",
+    "train": {
+        "accuracy": 0.927360774818402
+    },
+    "test": {
+        "accuracy": 0.4392605633802817,
+        "f1_macro": 0.3285295277128308,
+        "f1_weighted": 0.44984161049741234
+    },
+    "class_distribution": {
+        "0": 624,
+        "1": 191,
+        "3": 170,
+        "2": 151
+    },
+    "n_features": 34,
+    "n_samples_train": 4543,
+    "n_samples_test": 1136
+}
