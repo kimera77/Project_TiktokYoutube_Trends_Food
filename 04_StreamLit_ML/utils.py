@@ -25,10 +25,10 @@ def extract_sentiment_features(title):
     """
     scores = sentiment_analyzer.polarity_scores(title)
     return {
-        'sentiment_pos': scores['pos'],
-        'sentiment_neg': scores['neg'],
-        'sentiment_neu': scores['neu'],
-        'sentiment_compound': scores['compound']
+        'title_sentiment_positive': scores['pos'],
+        'title_sentiment_negative': scores['neg'],
+        'title_sentiment_neutral': scores['neu'],
+        'title_sentiment_compound': scores['compound']
     }
 
 
@@ -50,14 +50,12 @@ def extract_title_features(title):
     # Número de palabras
     features['title_word_count'] = len(title.split())
     
-    # Palabras en mayúsculas
-    features['title_uppercase_words'] = sum(1 for word in title.split() if word.isupper())
-    
-    # Caracteres especiales
-    features['title_special_chars'] = len(re.findall(r'[!?@#$%^&*()_+={}\[\]:;"\'<>,./-]', title))
-    
-    # Números en el título
-    features['title_has_numbers'] = int(bool(re.search(r'\d', title)))
+    # Ratio de mayúsculas
+    if len(title) > 0:
+        uppercase_count = sum(1 for c in title if c.isupper())
+        features['title_uppercase_ratio'] = uppercase_count / len(title)
+    else:
+        features['title_uppercase_ratio'] = 0
     
     # Emojis (detección simple)
     emoji_pattern = re.compile("["
@@ -68,11 +66,17 @@ def extract_title_features(title):
                                "]+", flags=re.UNICODE)
     features['title_has_emoji'] = int(bool(emoji_pattern.search(title)))
     
-    # Preguntas
-    features['title_has_question'] = int('?' in title)
-    
     # Exclamaciones
     features['title_exclamation_count'] = title.count('!')
+    
+    # Preguntas
+    features['title_question_count'] = title.count('?')
+    
+    # Números en el título
+    features['title_has_number'] = int(bool(re.search(r'\d', title)))
+    
+    # Hashtags
+    features['title_hashtag_count'] = title.count('#')
     
     return features
 
@@ -93,24 +97,36 @@ def extract_temporal_features(publish_date):
         pub_date = publish_date
     
     features = {}
-    features['publish_hour'] = pub_date.hour
-    features['publish_day_of_week'] = pub_date.dayofweek
-    features['publish_day'] = pub_date.day
-    features['publish_month'] = pub_date.month
-    features['publish_year'] = pub_date.year
-    features['is_weekend'] = int(pub_date.dayofweek >= 5)
+    # Usar weekday() para datetime, dayofweek para pandas
+    day_of_week = pub_date.weekday() if hasattr(pub_date, 'weekday') else pub_date.dayofweek
+    hour = pub_date.hour
     
-    # Horas pico (8-10am, 12-2pm, 6-10pm)
-    is_peak = (8 <= pub_date.hour <= 10) or (12 <= pub_date.hour <= 14) or (18 <= pub_date.hour <= 22)
-    features['is_peak_hour'] = int(is_peak)
+    # Características básicas (NO incluir estas que no están en el modelo)
+    # features['publish_hour'] y publish_day_of_week se usan solo para calcular otras features
     
-    # Días desde publicación (respecto a fecha actual simulada)
-    current_date = datetime.now()
-    days_since = (current_date - pub_date).days
-    features['days_since_publish'] = days_since
-    features['log_days_since_publish'] = np.log1p(days_since)
+    # Características temporales que SÍ están en el modelo
+    features['is_weekend'] = int(day_of_week >= 5)
+    features['is_prime_time'] = int(18 <= hour <= 22)  # 6PM-10PM
+    features['is_morning'] = int(6 <= hour <= 12)      # 6AM-12PM
+    features['is_afternoon'] = int(12 < hour <= 18)    # 12PM-6PM
     
     return features
+
+
+def categorize_channel_size(subscribers):
+    """
+    Categoriza el tamaño del canal según número de suscriptores
+    """
+    if subscribers < 1000:
+        return 0  # Micro
+    elif subscribers < 10000:
+        return 1  # Small
+    elif subscribers < 100000:
+        return 2  # Medium
+    elif subscribers < 1000000:
+        return 3  # Large
+    else:
+        return 4  # Mega
 
 
 def extract_channel_features(subscriber_count):
@@ -126,6 +142,7 @@ def extract_channel_features(subscriber_count):
     features = {}
     features['subscriber_count'] = subscriber_count
     features['log_subscribers'] = np.log1p(subscriber_count)
+    features['channel_size_category'] = categorize_channel_size(subscriber_count)
     
     return features
 
@@ -144,12 +161,18 @@ def extract_content_features(duration, tags, description):
     """
     features = {}
     
-    # Duración
+    # Duración (en segundos)
+    features['duration_sec'] = duration
     features['duration'] = duration
     features['log_duration'] = np.log1p(duration)
     features['duration_minutes'] = duration / 60
     
-    # Categoría de duración
+    # Categorías de duración (binarias)
+    features['is_short'] = int(duration <= 60)  # <= 1 minuto
+    features['is_medium'] = int(60 < duration <= 600)  # 1-10 min
+    features['is_long'] = int(duration > 600)  # > 10 min
+    
+    # Categoría de duración (one-hot encoding)
     if duration < 60:
         features['duration_category_short'] = 1
         features['duration_category_medium'] = 0
@@ -170,12 +193,20 @@ def extract_content_features(duration, tags, description):
         tags_list = tags if tags else []
     
     features['tag_count'] = len(tags_list)
+    features['log_tag_count'] = np.log1p(len(tags_list))
+    features['has_tags'] = int(len(tags_list) > 0)
     
     # Descripción
     desc_text = description if description else ""
     features['description_length'] = len(desc_text)
     features['description_word_count'] = len(desc_text.split())
     features['has_description'] = int(len(desc_text) > 0)
+    
+    # Captions (asumir que videos con descripción larga tienen captions)
+    features['has_captions'] = int(len(desc_text) > 100)
+    
+    # Features adicionales de video (valores por defecto)
+    features['is_hd'] = 1  # Asumir HD por defecto
     
     return features
 
@@ -223,7 +254,43 @@ def create_features_from_input(
     # Características del contenido
     features.update(extract_content_features(duration, tags, description))
     
-    return features
+    # Features adicionales con valores por defecto
+    features['made_for_kids'] = 0  # Por defecto, no es para niños
+    features['category_encoded'] = 0  # 0 para "Food" (valor por defecto)
+    features['language_encoded'] = 0  # 0 para idioma por defecto
+    
+    # Guardar título original para referencia
+    features['title'] = title
+    
+    # Ordenar features en el orden exacto que espera el modelo
+    feature_order = [
+        'tag_count', 'duration_sec', 'subscriber_count', 'made_for_kids',
+        'title_sentiment_compound', 'title_sentiment_positive', 'title_sentiment_negative', 'title_sentiment_neutral',
+        'title_length', 'title_word_count', 'title_uppercase_ratio', 'title_has_emoji',
+        'title_exclamation_count', 'title_question_count', 'title_has_number', 'title_hashtag_count',
+        'is_weekend', 'is_prime_time', 'is_morning', 'is_afternoon',
+        'channel_size_category', 'log_subscribers', 'duration_minutes',
+        'is_short', 'is_medium', 'is_long',
+        'description_length', 'has_description', 'has_tags', 'log_tag_count',
+        'is_hd', 'has_captions', 'category_encoded', 'language_encoded'
+    ]
+    
+    # Crear diccionario ordenado con todas las features necesarias
+    ordered_features = {}
+    for feat in feature_order:
+        ordered_features[feat] = features.get(feat, 0)  # 0 por defecto si falta
+    
+    # Mantener el título para referencia (no se usa en el modelo)
+    ordered_features['title'] = title
+    
+    # Agregar campos adicionales necesarios para el optimizador
+    ordered_features['duration'] = features.get('duration', duration)
+    ordered_features['description_word_count'] = features.get('description_word_count', 0)
+    ordered_features['title_has_emoji'] = features.get('title_has_emoji', 0)
+    ordered_features['title_question_count'] = features.get('title_question_count', 0)
+    ordered_features['title_exclamation_count'] = features.get('title_exclamation_count', 0)
+    
+    return ordered_features
 
 
 def format_engagement_category(category):

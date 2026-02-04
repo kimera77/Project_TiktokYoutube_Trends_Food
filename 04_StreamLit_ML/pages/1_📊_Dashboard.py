@@ -17,10 +17,35 @@ from predictor import VideoPredictor
 
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 
+# Estilos CSS para aumentar el tamaño del sidebar
+st.markdown("""
+<style>
+    /* Aumentar tamaño de textos en sidebar */
+    [data-testid="stSidebar"] * {
+        font-size: 21px !important;
+    }
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] a,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] .stMarkdown {
+        font-size: 21px !important;
+    }
+    /* Aumentar tamaño de letras de pestañas (tabs) */
+    button[data-baseweb="tab"] {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+    }
+    button[data-baseweb="tab"] p {
+        font-size: 18px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("📊 Dashboard del Modelo")
 st.markdown("### Visualiza el rendimiento y características de los modelos de Machine Learning")
 
-# Inicializar predictor
+# Inicializar predictor (versión 2 - forzar recarga)
 @st.cache_resource
 def load_predictor():
     return VideoPredictor(models_path="../03_Modelo_XGBoost_LightGBM")
@@ -29,8 +54,8 @@ try:
     predictor = load_predictor()
     
     # Cargar métricas guardadas
-    metrics_xgb_path = Path("../03_Modelo_XGBoost_LightGBM/xgb_metrics.json")
-    metrics_lgb_path = Path("../03_Modelo_XGBoost_LightGBM/lgb_metrics.json")
+    metrics_xgb_path = Path("../03_Modelo_XGBoost_LightGBM/xgboost_regression_metrics.json")
+    metrics_lgb_path = Path("../03_Modelo_XGBoost_LightGBM/lightgbm_classification_metrics.json")
     
     if metrics_xgb_path.exists():
         with open(metrics_xgb_path, 'r') as f:
@@ -66,18 +91,18 @@ try:
                 metric_col1, metric_col2, metric_col3 = st.columns(3)
                 
                 with metric_col1:
-                    r2 = metrics_xgb.get('test_r2', 0)
+                    r2 = metrics_xgb.get('test', {}).get('r2', 0)
                     st.metric("R² Score", f"{r2:.4f}", 
                              delta="Mejor" if r2 > 0.05 else "Mejorable",
                              delta_color="normal")
                 
                 with metric_col2:
-                    mae = metrics_xgb.get('test_mae', 0)
+                    mae = metrics_xgb.get('test', {}).get('mae', 0)
                     st.metric("MAE", f"{mae:.4f}%", 
                              help="Error Absoluto Medio")
                 
                 with metric_col3:
-                    rmse = metrics_xgb.get('test_rmse', 0)
+                    rmse = metrics_xgb.get('test', {}).get('rmse', 0)
                     st.metric("RMSE", f"{rmse:.4f}%", 
                              help="Raíz del Error Cuadrático Medio")
                 
@@ -86,14 +111,14 @@ try:
                 
                 metrics_names = ['R²', 'MAE', 'RMSE']
                 train_values = [
-                    metrics_xgb.get('train_r2', 0),
-                    metrics_xgb.get('train_mae', 0) / 10,  # Escalar para visualización
-                    metrics_xgb.get('train_rmse', 0) / 10
+                    metrics_xgb.get('train', {}).get('r2', 0),
+                    metrics_xgb.get('train', {}).get('mae', 0) / 10,  # Escalar para visualización
+                    metrics_xgb.get('train', {}).get('rmse', 0) / 10
                 ]
                 test_values = [
-                    metrics_xgb.get('test_r2', 0),
-                    metrics_xgb.get('test_mae', 0) / 10,
-                    metrics_xgb.get('test_rmse', 0) / 10
+                    metrics_xgb.get('test', {}).get('r2', 0),
+                    metrics_xgb.get('test', {}).get('mae', 0) / 10,
+                    metrics_xgb.get('test', {}).get('rmse', 0) / 10
                 ]
                 
                 fig_xgb.add_trace(go.Bar(
@@ -114,7 +139,11 @@ try:
                     title="Comparación Train vs Test (XGBoost)",
                     barmode='group',
                     yaxis_title="Valor de Métrica",
-                    height=400
+                    height=400,
+                    font=dict(size=16),
+                    title_font=dict(size=20),
+                    xaxis=dict(title_font=dict(size=18), tickfont=dict(size=16)),
+                    yaxis=dict(title_font=dict(size=18), tickfont=dict(size=16))
                 )
                 
                 st.plotly_chart(fig_xgb, use_container_width=True)
@@ -130,36 +159,34 @@ try:
                 metric_col1, metric_col2, metric_col3 = st.columns(3)
                 
                 with metric_col1:
-                    acc = metrics_lgb.get('test_accuracy', 0)
+                    acc = metrics_lgb.get('test', {}).get('accuracy', 0)
                     st.metric("Accuracy", f"{acc*100:.2f}%", 
                              delta="Bueno" if acc > 0.5 else "Mejorable",
                              delta_color="normal")
                 
                 with metric_col2:
-                    prec = metrics_lgb.get('test_precision_macro', 0)
-                    st.metric("Precision", f"{prec*100:.2f}%", 
-                             help="Precisión Macro")
+                    f1_macro = metrics_lgb.get('test', {}).get('f1_macro', 0)
+                    st.metric("F1-Score (Macro)", f"{f1_macro*100:.2f}%", 
+                             help="F1 Score Macro")
                 
                 with metric_col3:
-                    rec = metrics_lgb.get('test_recall_macro', 0)
-                    st.metric("Recall", f"{rec*100:.2f}%", 
-                             help="Recall Macro")
+                    f1_weighted = metrics_lgb.get('test', {}).get('f1_weighted', 0)
+                    st.metric("Recall", f"{f1_weighted*100:.2f}%", 
+                             help="F1 Score Weighted")
                 
                 # Gráfico de comparación Train vs Test
                 fig_lgb = go.Figure()
                 
-                metrics_names = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
+                metrics_names = ['Accuracy', 'F1-Macro', 'F1-Weighted']
                 train_values = [
-                    metrics_lgb.get('train_accuracy', 0),
-                    metrics_lgb.get('train_precision_macro', 0),
-                    metrics_lgb.get('train_recall_macro', 0),
-                    metrics_lgb.get('train_f1_macro', 0)
+                    metrics_lgb.get('train', {}).get('accuracy', 0),
+                    0,  # No disponible en JSON
+                    0   # No disponible en JSON
                 ]
                 test_values = [
-                    metrics_lgb.get('test_accuracy', 0),
-                    metrics_lgb.get('test_precision_macro', 0),
-                    metrics_lgb.get('test_recall_macro', 0),
-                    metrics_lgb.get('test_f1_macro', 0)
+                    metrics_lgb.get('test', {}).get('accuracy', 0),
+                    metrics_lgb.get('test', {}).get('f1_macro', 0),
+                    metrics_lgb.get('test', {}).get('f1_weighted', 0)
                 ]
                 
                 fig_lgb.add_trace(go.Bar(
@@ -180,7 +207,11 @@ try:
                     title="Comparación Train vs Test (LightGBM)",
                     barmode='group',
                     yaxis_title="Score",
-                    height=400
+                    height=400,
+                    font=dict(size=16),
+                    title_font=dict(size=20),
+                    xaxis=dict(title_font=dict(size=18), tickfont=dict(size=16)),
+                    yaxis=dict(title_font=dict(size=18), tickfont=dict(size=16))
                 )
                 
                 st.plotly_chart(fig_lgb, use_container_width=True)
@@ -223,7 +254,14 @@ try:
         fig_importance.update_layout(
             height=600,
             showlegend=False,
-            yaxis={'categoryorder': 'total ascending'}
+            font=dict(size=16),
+            title_font=dict(size=20),
+            xaxis=dict(title_font=dict(size=18), tickfont=dict(size=16)),
+            yaxis=dict(
+                categoryorder='total ascending',
+                title_font=dict(size=18), 
+                tickfont=dict(size=14)
+            )
         )
         
         st.plotly_chart(fig_importance, use_container_width=True)
@@ -248,24 +286,30 @@ try:
         st.markdown("### 🔍 Análisis SHAP (SHapley Additive exPlanations)")
         st.markdown("Explica cómo cada característica contribuye a la predicción:")
         
-        # Cargar imágenes SHAP si existen
-        shap_summary_path = Path("../03_Modelo_XGBoost_LightGBM/shap_summary.png")
-        shap_bar_path = Path("../03_Modelo_XGBoost_LightGBM/shap_importance.png")
+        # Cargar imágenes SHAP si existen (archivos reales del proyecto)
+        shap_dot_path = Path("../03_Modelo_XGBoost_LightGBM/shap_summary_dot.png")
+        shap_bar_path = Path("../03_Modelo_XGBoost_LightGBM/shap_summary_bar.png")
         
-        if shap_summary_path.exists() and shap_bar_path.exists():
+        if shap_dot_path.exists() or shap_bar_path.exists():
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("#### SHAP Summary Plot")
-                st.image(str(shap_summary_path), 
-                        caption="Distribución de valores SHAP por característica",
-                        use_container_width=True)
+                if shap_dot_path.exists():
+                    st.markdown("#### SHAP Summary Plot (Dot)")
+                    st.image(str(shap_dot_path), 
+                            caption="Distribución de valores SHAP por característica",
+                            width=650)
+                else:
+                    st.info("Imagen SHAP dot no encontrada")
             
             with col2:
-                st.markdown("#### SHAP Feature Importance")
-                st.image(str(shap_bar_path), 
-                        caption="Importancia promedio absoluta de características",
-                        use_container_width=True)
+                if shap_bar_path.exists():
+                    st.markdown("#### SHAP Feature Importance (Bar)")
+                    st.image(str(shap_bar_path), 
+                            caption="Importancia promedio absoluta de características",
+                            width=650)
+                else:
+                    st.info("Imagen SHAP bar no encontrada")
             
             st.markdown("""
             #### 📊 Cómo Leer los Gráficos SHAP
@@ -286,13 +330,13 @@ try:
         st.markdown("### 📊 Matriz de Confusión (LightGBM Classifier)")
         st.markdown("Muestra cómo se distribuyen las predicciones vs realidad:")
         
-        # Cargar imagen de matriz de confusión
-        confusion_path = Path("../03_Modelo_XGBoost_LightGBM/confusion_matrix.png")
+        # Cargar imagen de matriz de confusión (nombre correcto del archivo)
+        confusion_path = Path("../03_Modelo_XGBoost_LightGBM/confusion_matrix_lightgbm.png")
         
         if confusion_path.exists():
             st.image(str(confusion_path), 
                     caption="Matriz de Confusión - Clasificación de Engagement",
-                    use_container_width=True)
+                    width=700)
             
             st.markdown("""
             #### 📖 Interpretación

@@ -97,7 +97,7 @@ class VideoOptimizer:
                 'suggestion': "Agregar 1-2 emojis relevantes puede aumentar el CTR (ej: 🍕🔥)."
             })
         
-        if title_features['title_has_question'] == 0 and title_features['title_exclamation_count'] == 0:
+        if title_features['title_question_count'] == 0 and title_features['title_exclamation_count'] == 0:
             recommendations.append({
                 'type': 'info',
                 'category': 'Título',
@@ -119,12 +119,12 @@ class VideoOptimizer:
         """
         recommendations = []
         
-        publish_hour = temporal_features['publish_hour']
-        is_weekend = temporal_features['is_weekend']
-        is_peak = temporal_features['is_peak_hour']
+        publish_hour = temporal_features.get('publish_hour', 18)  # Default 18:00 si no existe
+        is_weekend = temporal_features.get('is_weekend', 0)
+        is_prime_time = temporal_features.get('is_prime_time', 0)  # Usar is_prime_time en lugar de is_peak_hour
         
         # Hora de publicación
-        if is_peak:
+        if is_prime_time:
             recommendations.append({
                 'type': 'success',
                 'category': 'Timing',
@@ -136,7 +136,7 @@ class VideoOptimizer:
                 'type': 'warning',
                 'category': 'Timing',
                 'message': f"⏰ Publicación en hora no óptima ({publish_hour}:00).",
-                'suggestion': f"Considera publicar en horas pico: {', '.join(map(str, self.optimal_ranges['publish_hour_optimal']))}:00"
+                'suggestion': f"Considera publicar en horas pico: 18:00-22:00 (prime time)"
             })
         
         # Fin de semana
@@ -169,9 +169,10 @@ class VideoOptimizer:
         """
         recommendations = []
         
-        duration = content_features['duration']
-        tag_count = content_features['tag_count']
-        has_desc = content_features['has_description']
+        # Usar duration_sec si duration no existe
+        duration = content_features.get('duration', content_features.get('duration_sec', 0))
+        tag_count = content_features.get('tag_count', 0)
+        has_desc = content_features.get('has_description', 0)
         
         # Duración del video
         if duration < self.optimal_ranges['duration'][0]:
@@ -228,7 +229,9 @@ class VideoOptimizer:
                 'suggestion': "Agrega una descripción detallada con ingredientes, pasos y palabras clave para SEO."
             })
         else:
-            desc_words = content_features['description_word_count']
+            # Calcular description_word_count si no existe
+            desc_words = content_features.get('description_word_count', 
+                                             len(content_features.get('description', '').split()))
             if desc_words < self.optimal_ranges['description_word_count'][0]:
                 recommendations.append({
                     'type': 'warning',
@@ -258,7 +261,7 @@ class VideoOptimizer:
         """
         recommendations = []
         
-        subscribers = channel_features['subscriber_count']
+        subscribers = channel_features.get('subscriber_count', 0)
         
         if subscribers < 1000:
             recommendations.append({

@@ -28,15 +28,26 @@ class VideoPredictor:
         """
         try:
             # Cargar modelos
-            self.xgb_model = joblib.load(self.models_path / 'xgboost_regressor.pkl')
-            self.lgb_model = joblib.load(self.models_path / 'lightgbm_classifier.pkl')
+            self.xgb_model = joblib.load(self.models_path / 'xgboost_engagement_regressor.pkl')
+            self.lgb_model = joblib.load(self.models_path / 'lightgbm_engagement_classifier.pkl')
             
             # Cargar escaladores y encoders
             self.scaler = joblib.load(self.models_path / 'scaler_xgb.pkl')
-            self.label_encoder = joblib.load(self.models_path / 'label_encoder_lgb.pkl')
             
-            # Cargar nombres de características
-            self.feature_names = joblib.load(self.models_path / 'feature_names.pkl')
+            # Intentar cargar label encoder (puede tener nombre diferente)
+            try:
+                self.label_encoder = joblib.load(self.models_path / 'label_encoder_category.pkl')
+            except:
+                # Si no existe, crear uno por defecto
+                from sklearn.preprocessing import LabelEncoder
+                self.label_encoder = LabelEncoder()
+                self.label_encoder.classes_ = np.array(['Bajo', 'Medio', 'Alto', 'Viral'])
+            
+            # Obtener nombres de características del modelo
+            if hasattr(self.xgb_model, 'get_booster'):
+                self.feature_names = self.xgb_model.get_booster().feature_names
+            else:
+                self.feature_names = None
             
             print("✅ Modelos cargados exitosamente")
             
@@ -54,16 +65,22 @@ class VideoPredictor:
         Returns:
             np.array: Array con características preparadas
         """
-        # Crear DataFrame con las características en el orden correcto
-        df = pd.DataFrame([features_dict])
+        # Obtener los nombres de features del scaler
+        expected_features = list(self.scaler.feature_names_in_)
         
-        # Asegurar que todas las columnas necesarias existan
-        for col in self.feature_names:
+        # Crear diccionario solo con las features esperadas (excluir 'title')
+        filtered_features = {k: v for k, v in features_dict.items() if k in expected_features}
+        
+        # Crear DataFrame con las features en el orden exacto del scaler
+        df = pd.DataFrame([filtered_features])
+        
+        # Asegurar que todas las columnas estén presentes en el orden correcto
+        for col in expected_features:
             if col not in df.columns:
                 df[col] = 0
         
-        # Seleccionar solo las columnas en el orden correcto
-        df = df[self.feature_names]
+        # Reordenar columnas según el orden del scaler
+        df = df[expected_features]
         
         # Escalar las características
         features_scaled = self.scaler.transform(df)
@@ -152,8 +169,16 @@ class VideoPredictor:
             pd.DataFrame: DataFrame con características e importancias
         """
         importances = self.xgb_model.feature_importances_
+        
+        # Obtener nombres de features del scaler (fuente confiable)
+        feature_names = list(self.scaler.feature_names_in_)
+        
+        # Verificar que coincidan las dimensiones
+        if len(feature_names) != len(importances):
+            raise ValueError(f"Mismatch: {len(feature_names)} nombres vs {len(importances)} importancias")
+        
         importance_df = pd.DataFrame({
-            'feature': self.feature_names,
+            'feature': feature_names,
             'importance': importances
         }).sort_values('importance', ascending=False).head(top_n)
         

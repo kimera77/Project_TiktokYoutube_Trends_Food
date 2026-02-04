@@ -18,10 +18,27 @@ from predictor import VideoPredictor
 
 st.set_page_config(page_title="Predictor", page_icon="🎯", layout="wide")
 
+# Estilos CSS para aumentar el tamaño del sidebar
+st.markdown("""
+<style>
+    /* Aumentar tamaño de textos en sidebar */
+    [data-testid="stSidebar"] * {
+        font-size: 21px !important;
+    }
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] a,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] .stMarkdown {
+        font-size: 21px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🎯 Predictor de Engagement")
 st.markdown("### Predice el rendimiento de tu video antes de publicarlo")
 
-# Inicializar predictor
+# Inicializar predictor (versión 2 - forzar recarga)
 @st.cache_resource
 def load_predictor():
     return VideoPredictor(models_path="../03_Modelo_XGBoost_LightGBM")
@@ -56,25 +73,16 @@ try:
             )
             
             # Campo 3: Duración (OBLIGATORIO)
-            duration_minutes = st.number_input(
-                "Duración (minutos)*",
-                min_value=0.1,
-                value=8.0,
-                step=0.5,
-                help="Duración total del video en minutos"
-            )
-            duration_seconds = int(duration_minutes * 60)
-            
-            # Campo 4: Vistas esperadas (OBLIGATORIO)
-            expected_views = st.number_input(
-                "Vistas Esperadas*",
-                min_value=100,
-                value=10000,
-                step=500,
-                help="Estimación de vistas basada en tu histórico o expectativa"
+            duration_seconds = st.number_input(
+                "Duración (segundos)*",
+                min_value=1,
+                max_value=60,
+                value=30,
+                step=1,
+                help="Duración total del video en segundos (máximo 60s para videos cortos)"
             )
             
-            # Campo 5: Fecha de publicación (OBLIGATORIO)
+            # Campo 4: Fecha de publicación (OBLIGATORIO)
             publish_date = st.date_input(
                 "Fecha de Publicación Planeada*",
                 value=datetime.now(),
@@ -92,14 +100,14 @@ try:
         with col2:
             st.markdown("### 🏷️ Información Adicional (Opcional)")
             
-            # Campo 6: Tags (opcional)
+            # Campo 5: Tags (opcional)
             tags_input = st.text_area(
                 "Tags del Video",
                 placeholder="receta, cocina, pizza, facil, rapido, casero",
                 help="Separa los tags con comas. Mejora el SEO del video."
             )
             
-            # Campo 7: Descripción (opcional)
+            # Campo 6: Descripción (opcional)
             description = st.text_area(
                 "Descripción del Video",
                 placeholder="Aprende a hacer la mejor pizza casera con ingredientes simples...",
@@ -124,8 +132,6 @@ try:
             st.error("❌ El número de suscriptores debe ser mayor a 0")
         elif duration_seconds <= 0:
             st.error("❌ La duración debe ser mayor a 0")
-        elif expected_views <= 0:
-            st.error("❌ Las vistas esperadas deben ser mayores a 0")
         else:
             # Crear datetime completo
             publish_datetime = datetime.combine(publish_date, datetime.min.time().replace(hour=publish_hour))
@@ -141,8 +147,10 @@ try:
                     description=description
                 )
                 
-                # Guardar título en features para el optimizador
+                # Guardar título y hora de publicación en features para el optimizador
                 features['title'] = title
+                features['publish_hour'] = publish_hour
+                features['duration_minutes'] = duration_seconds / 60
                 
                 # Realizar predicción
                 prediction_results = predictor.predict_full(features)
@@ -150,8 +158,7 @@ try:
                 # Guardar en session state para usar en el optimizador
                 st.session_state['last_prediction'] = {
                     'features': features,
-                    'results': prediction_results,
-                    'expected_views': expected_views
+                    'results': prediction_results
                 }
                 
                 # Mostrar resultados
@@ -159,14 +166,15 @@ try:
                 st.markdown("## 🎉 Resultados de la Predicción")
                 
                 # Métricas principales
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3 = st.columns(3)
                 
                 with col1:
                     engagement_rate = prediction_results['engagement_rate']
                     st.metric(
-                        "Engagement Rate",
+                        "📈 Engagement Rate",
                         f"{engagement_rate:.2f}%",
-                        delta=None
+                        delta=None,
+                        help="Porcentaje de engagement predicho: (likes + 50×comments) / views × 100"
                     )
                 
                 with col2:
@@ -179,26 +187,26 @@ try:
                     confidence = prediction_results['confidence']
                     max_prob = prediction_results['max_probability']
                     st.metric(
-                        "Confianza",
+                        "🎯 Confianza",
                         confidence,
-                        delta=f"{max_prob*100:.1f}%"
-                    )
-                
-                with col4:
-                    # Calcular métricas esperadas
-                    expected_metrics = calculate_expected_metrics(engagement_rate, expected_views)
-                    st.metric(
-                        "Likes Esperados",
-                        f"{expected_metrics['expected_likes']:,}"
+                        delta=f"{max_prob*100:.1f}%",
+                        help="Nivel de confianza del modelo en la predicción"
                     )
                 
                 # Gráfico de probabilidades por categoría
                 st.markdown("### 📊 Probabilidad por Categoría")
                 
+                # Definir orden correcto de categorías
+                category_order = ['Viral', 'Alto', 'Medio', 'Bajo']
+                
                 prob_df = pd.DataFrame([
                     {'Categoría': cat, 'Probabilidad': prob*100}
                     for cat, prob in prediction_results['category_probabilities'].items()
-                ]).sort_values('Probabilidad', ascending=False)
+                ])
+                
+                # Asegurar que todas las categorías estén presentes en el orden correcto
+                prob_df['Categoría'] = pd.Categorical(prob_df['Categoría'], categories=category_order, ordered=True)
+                prob_df = prob_df.sort_values('Categoría').reset_index(drop=True)
                 
                 fig_prob = px.bar(
                     prob_df,
@@ -210,25 +218,21 @@ try:
                     color_continuous_scale='RdYlGn'
                 )
                 
-                fig_prob.update_layout(height=400, showlegend=False)
+                # Aumentar tamaño de fuente y forzar orden del eje X
+                fig_prob.update_layout(
+                    height=400, 
+                    showlegend=False,
+                    font=dict(size=16),  # Tamaño general de fuente
+                    title_font=dict(size=20),  # Título
+                    xaxis=dict(
+                        title_font=dict(size=18), 
+                        tickfont=dict(size=16),
+                        categoryorder='array',
+                        categoryarray=category_order
+                    ),  # Eje X con orden forzado
+                    yaxis=dict(title_font=dict(size=18), tickfont=dict(size=16))   # Eje Y
+                )
                 st.plotly_chart(fig_prob, use_container_width=True)
-                
-                # Detalles de métricas esperadas
-                st.markdown("### 📈 Métricas Esperadas")
-                
-                metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-                
-                with metric_col1:
-                    st.metric("Vistas", f"{expected_views:,}")
-                
-                with metric_col2:
-                    st.metric("Likes", f"{expected_metrics['expected_likes']:,}")
-                
-                with metric_col3:
-                    st.metric("Comentarios", f"{expected_metrics['expected_comments']:,}")
-                
-                with metric_col4:
-                    st.metric("Engagement Total", f"{expected_metrics['expected_engagement_total']:,}")
                 
                 # Características del video analizadas
                 st.markdown("### 🔍 Análisis de Características")
@@ -239,22 +243,23 @@ try:
                     st.markdown("#### 📝 Título")
                     st.write(f"- Longitud: {features['title_length']} caracteres")
                     st.write(f"- Palabras: {features['title_word_count']}")
-                    st.write(f"- Sentiment: {features['sentiment_compound']:.3f}")
+                    st.write(f"- Sentiment: {features['title_sentiment_compound']:.3f}")
                     st.write(f"- Tiene emoji: {'Sí' if features['title_has_emoji'] else 'No'}")
-                    st.write(f"- Tiene pregunta: {'Sí' if features['title_has_question'] else 'No'}")
+                    st.write(f"- Tiene pregunta: {'Sí' if features['title_question_count'] > 0 else 'No'}")
                     
                     st.markdown("#### ⏰ Timing")
                     st.write(f"- Hora de publicación: {publish_hour}:00")
-                    st.write(f"- Día de semana: {features['publish_day_of_week']}")
                     st.write(f"- Es fin de semana: {'Sí' if features['is_weekend'] else 'No'}")
-                    st.write(f"- Es hora pico: {'Sí' if features['is_peak_hour'] else 'No'}")
+                    st.write(f"- Es prime time: {'Sí' if features['is_prime_time'] else 'No'}")
+                    st.write(f"- Es mañana: {'Sí' if features['is_morning'] else 'No'}")
+                    st.write(f"- Es tarde: {'Sí' if features['is_afternoon'] else 'No'}")
                 
                 with analysis_col2:
                     st.markdown("#### 🎬 Contenido")
-                    st.write(f"- Duración: {duration_minutes:.1f} minutos")
-                    st.write(f"- Categoría: {'Corto' if features['duration_category_short'] else 'Medio' if features['duration_category_medium'] else 'Largo'}")
+                    st.write(f"- Duración: {duration_seconds} segundos")
+                    st.write(f"- Categoría: {'Corto' if features['is_short'] else 'Medio' if features['is_medium'] else 'Largo'}")
                     st.write(f"- Tags: {features['tag_count']}")
-                    st.write(f"- Descripción: {features['description_word_count']} palabras")
+                    st.write(f"- Descripción: {features['description_length']} caracteres")
                     
                     st.markdown("#### 📢 Canal")
                     st.write(f"- Suscriptores: {subscriber_count:,}")
@@ -268,16 +273,13 @@ try:
                     'video_info': {
                         'titulo': title,
                         'suscriptores': subscriber_count,
-                        'duracion_minutos': duration_minutes,
-                        'fecha_publicacion': publish_datetime.strftime('%Y-%m-%d %H:%M'),
-                        'vistas_esperadas': expected_views
+                        'duracion_segundos': duration_seconds,
+                        'fecha_publicacion': publish_datetime.strftime('%Y-%m-%d %H:%M')
                     },
                     'prediccion': {
                         'engagement_rate': f"{engagement_rate:.2f}%",
                         'categoria': category,
-                        'confianza': confidence,
-                        'likes_esperados': expected_metrics['expected_likes'],
-                        'comentarios_esperados': expected_metrics['expected_comments']
+                        'confianza': confidence
                     },
                     'probabilidades': {
                         cat: f"{prob*100:.2f}%" 

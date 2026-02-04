@@ -14,6 +14,23 @@ from utils import format_engagement_category
 
 st.set_page_config(page_title="Optimizador", page_icon="💡", layout="wide")
 
+# Estilos CSS para aumentar el tamaño del sidebar
+st.markdown("""
+<style>
+    /* Aumentar tamaño de textos en sidebar */
+    [data-testid="stSidebar"] * {
+        font-size: 21px !important;
+    }
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] a,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] .stMarkdown {
+        font-size: 21px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("💡 Optimizador de Videos")
 st.markdown("### Recibe recomendaciones personalizadas para mejorar tu engagement")
 
@@ -25,7 +42,6 @@ if 'last_prediction' in st.session_state:
     prediction_data = st.session_state['last_prediction']
     features = prediction_data['features']
     results = prediction_data['results']
-    expected_views = prediction_data['expected_views']
     
     # Resumen de la predicción
     st.markdown("## 📊 Resumen de tu Video")

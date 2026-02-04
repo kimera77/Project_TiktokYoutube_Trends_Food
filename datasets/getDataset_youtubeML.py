@@ -16,7 +16,10 @@ DetectorFactory.seed = 0
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_API_KEY")
 youtube = build('youtube', 'v3', developerKey=API_KEY)
-FILE_NAME = 'dataset_ML_food.csv'
+
+# Obtener directorio del script para guardar siempre en datasets/
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+FILE_NAME = os.path.join(SCRIPT_DIR, 'dataset_ML_food.csv')
 
 # ==========================================
 # KEYWORDS DE COMIDA (FILTRO MEJORADO)
