@@ -44,21 +44,24 @@ st.markdown("""
         font-size: 21px !important;
     }
     
-    /* Ocultar el título por defecto de la página principal */
-    [data-testid="stSidebar"] a[href="/"] span {
-        display: none;
+    /* Modificar el texto "app" para que sea más pequeño y agregar "Inicio" */
+    [data-testid="stSidebarNav"] > div:first-child {
+        font-size: 10px !important;
+        color: #999 !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
-    [data-testid="stSidebar"] a[href="/"] span::after {
+    [data-testid="stSidebarNav"] > div:first-child::after {
         content: "🏠 Inicio";
-        display: inline;
+        display: block;
+        font-size: 21px !important;
+        color: #000 !important;
+        margin-top: 5px;
+        text-transform: none;
+        letter-spacing: normal;
     }
 </style>
 """, unsafe_allow_html=True)
-
-# Personalizar título de la página en el sidebar
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🏠 Inicio")
-st.sidebar.markdown("Bienvenido al predictor de engagement")
 
 # Página principal (Home)
 st.title("🎥 YouTube Food Engagement Predictor")

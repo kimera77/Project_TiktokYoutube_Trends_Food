@@ -38,6 +38,22 @@ st.markdown("""
 st.title("🎯 Predictor de Engagement")
 st.markdown("### Predice el rendimiento de tu video antes de publicarlo")
 
+# Mostrar aviso de persistencia de datos
+if st.session_state.get('predictor_title', ""):
+    col_msg, col_btn = st.columns([3, 1])
+    with col_msg:
+        st.info("ℹ️ Los datos del formulario se mantienen guardados aunque cambies de página")
+    with col_btn:
+        if st.button("🔄 Limpiar Formulario"):
+            st.session_state.predictor_title = ""
+            st.session_state.predictor_subscribers = 5000
+            st.session_state.predictor_duration = 30
+            st.session_state.predictor_date = datetime.now()
+            st.session_state.predictor_hour = 18
+            st.session_state.predictor_tags = ""
+            st.session_state.predictor_description = ""
+            st.rerun()
+
 # Inicializar predictor (versión 2 - forzar recarga)
 @st.cache_resource
 def load_predictor():
@@ -45,6 +61,22 @@ def load_predictor():
 
 try:
     predictor = load_predictor()
+    
+    # Inicializar valores en session_state si no existen
+    if 'predictor_title' not in st.session_state:
+        st.session_state.predictor_title = ""
+    if 'predictor_subscribers' not in st.session_state:
+        st.session_state.predictor_subscribers = 5000
+    if 'predictor_duration' not in st.session_state:
+        st.session_state.predictor_duration = 30
+    if 'predictor_date' not in st.session_state:
+        st.session_state.predictor_date = datetime.now()
+    if 'predictor_hour' not in st.session_state:
+        st.session_state.predictor_hour = 18
+    if 'predictor_tags' not in st.session_state:
+        st.session_state.predictor_tags = ""
+    if 'predictor_description' not in st.session_state:
+        st.session_state.predictor_description = ""
     
     # Formulario de input
     st.markdown("## 📝 Información del Video")
@@ -59,6 +91,7 @@ try:
             # Campo 1: Título (OBLIGATORIO)
             title = st.text_input(
                 "Título del Video*",
+                value=st.session_state.predictor_title,
                 placeholder="Ej: 🍕 Cómo hacer la MEJOR pizza casera en 10 minutos",
                 help="El título es crucial para el engagement. Incluye palabras clave atractivas."
             )
@@ -67,7 +100,7 @@ try:
             subscriber_count = st.number_input(
                 "Número de Suscriptores del Canal*",
                 min_value=0,
-                value=5000,
+                value=st.session_state.predictor_subscribers,
                 step=100,
                 help="Número total de suscriptores de tu canal"
             )
@@ -77,7 +110,7 @@ try:
                 "Duración (segundos)*",
                 min_value=1,
                 max_value=60,
-                value=30,
+                value=st.session_state.predictor_duration,
                 step=1,
                 help="Duración total del video en segundos (máximo 60s para videos cortos)"
             )
@@ -85,7 +118,7 @@ try:
             # Campo 4: Fecha de publicación (OBLIGATORIO)
             publish_date = st.date_input(
                 "Fecha de Publicación Planeada*",
-                value=datetime.now(),
+                value=st.session_state.predictor_date,
                 help="Cuándo planeas publicar el video"
             )
             
@@ -93,7 +126,7 @@ try:
                 "Hora de Publicación*",
                 min_value=0,
                 max_value=23,
-                value=18,
+                value=st.session_state.predictor_hour,
                 help="Hora del día (formato 24h)"
             )
         
@@ -103,6 +136,7 @@ try:
             # Campo 5: Tags (opcional)
             tags_input = st.text_area(
                 "Tags del Video",
+                value=st.session_state.predictor_tags,
                 placeholder="receta, cocina, pizza, facil, rapido, casero",
                 help="Separa los tags con comas. Mejora el SEO del video."
             )
@@ -110,6 +144,7 @@ try:
             # Campo 6: Descripción (opcional)
             description = st.text_area(
                 "Descripción del Video",
+                value=st.session_state.predictor_description,
                 placeholder="Aprende a hacer la mejor pizza casera con ingredientes simples...",
                 help="Una descripción detallada mejora el SEO y proporciona contexto"
             )
@@ -125,6 +160,15 @@ try:
     
     # Procesamiento de la predicción
     if submitted:
+        # Guardar valores en session_state
+        st.session_state.predictor_title = title
+        st.session_state.predictor_subscribers = subscriber_count
+        st.session_state.predictor_duration = duration_seconds
+        st.session_state.predictor_date = publish_date
+        st.session_state.predictor_hour = publish_hour
+        st.session_state.predictor_tags = tags_input
+        st.session_state.predictor_description = description
+        
         # Validar campos obligatorios
         if not title or len(title.strip()) < 5:
             st.error("❌ El título es obligatorio y debe tener al menos 5 caracteres")

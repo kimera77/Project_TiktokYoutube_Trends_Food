@@ -9,6 +9,15 @@ Esta aplicación multi-página permite:
 - **Predecir** el engagement rate y categoría de videos nuevos
 - **Optimizar** videos con recomendaciones personalizadas basadas en reglas
 
+## ✨ Características Destacadas
+
+### 💾 Persistencia de Datos
+Los datos ingresados en el **Predictor** se mantienen guardados automáticamente:
+- Los campos del formulario conservan sus valores aunque cambies de página
+- Puedes navegar entre Dashboard, Predictor y Optimizador sin perder información
+- Usa el botón "🔄 Limpiar Formulario" para empezar desde cero
+- Los valores se almacenan en `st.session_state` durante toda la sesión
+
 ## 🚀 Instalación y Uso
 
 ### 1. Instalar Dependencias
