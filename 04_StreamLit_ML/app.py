@@ -136,10 +136,28 @@ with col_modelo1:
     st.markdown("""
     <div style='background-color: #e3f2fd; padding: 20px; border-radius: 10px; border-left: 5px solid #2196F3;'>
     <h4 style='color: #1976D2; margin-top: 0;'>🔵 XGBoost Regressor</h4>
-    <p><strong>Uso:</strong> Predice el <strong>valor numérico</strong> del engagement rate</p>
-    <p><strong>Salida:</strong> Un número (ej: 5.3%)</p>
-    <p><strong>Rendimiento:</strong> R² = 0.0726, MAE = 4.61</p>
-    <p><strong>¿Cuándo se usa?</strong> Cuando necesitas saber el <strong>engagement exacto</strong> esperado</p>
+    
+    <p><strong>Objetivo:</strong> Regresión del engagement rate (valor continuo)</p>
+    <p><strong>Output:</strong> Valor numérico (ej: 5.3%)</p>
+    
+    <p><strong>Métricas de rendimiento:</strong></p>
+    <ul>
+        <li><strong>R² = 0.0726</strong> (coeficiente de determinación: explica el 7.26% de la varianza)</li>
+        <li><strong>MAE = 4.61</strong> (error absoluto medio en puntos porcentuales)</li>
+        <li><strong>RMSE = 9.89</strong> (raíz del error cuadrático medio, penaliza outliers)</li>
+    </ul>
+    
+    <p><strong>Arquitectura:</strong></p>
+    <ul>
+        <li><strong>Gradient Boosting:</strong> Técnica de ensamble que combina múltiples modelos débiles de forma secuencial. Cada nuevo modelo corrige los errores del anterior, mejorando progresivamente las predicciones.</li>
+        <li><strong>Extreme Gradient Boosting (XGBoost):</strong> Implementación optimizada de gradient boosting. Añade regularización automática y paralelización para mejorar rendimiento y evitar overfitting.</li>
+        <li><strong>Decision Trees como base learners:</strong> Cada iteración construye un árbol de decisión que aprende de los residuos (errores) del modelo anterior.</li>
+        <li><strong>Regularización L1/L2:</strong> Penalización añadida a la función de pérdida para reducir la complejidad del modelo. L1 promueve sparsity (muchos pesos a 0), L2 reduce magnitud de pesos.</li>
+        <li><strong>Stochastic Gradient Boosting:</strong> Usa submuestreo aleatorio de datos y features en cada iteración para mejorar generalización y reducir overfitting.</li>
+        <li><strong>Early Stopping:</strong> Detiene el entrenamiento automáticamente cuando el modelo deja de mejorar en un validation set, evitando entrenar iteraciones innecesarias.</li>
+    </ul>
+    
+    <p><strong>Aplicación:</strong> Predicción numérica del engagement esperado</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -147,10 +165,30 @@ with col_modelo2:
     st.markdown("""
     <div style='background-color: #e8f5e9; padding: 20px; border-radius: 10px; border-left: 5px solid #4CAF50;'>
     <h4 style='color: #388E3C; margin-top: 0;'>🟢 LightGBM Classifier</h4>
-    <p><strong>Uso:</strong> Clasifica el nivel de <strong>éxito del video</strong></p>
-    <p><strong>Salida:</strong> Una categoría (Bajo, Medio, Alto, Viral)</p>
-    <p><strong>Rendimiento:</strong> Accuracy = 43.9%</p>
-    <p><strong>¿Cuándo se usa?</strong> Cuando quieres saber si tendrás <strong>éxito o no</strong></p>
+    
+    <p><strong>Objetivo:</strong> Clasificación multiclase del nivel de engagement</p>
+    <p><strong>Output:</strong> Categoría {Bajo, Medio, Alto, Viral} + probabilidades</p>
+    
+    <p><strong>Métricas de rendimiento:</strong></p>
+    <ul>
+        <li><strong>Accuracy = 43.9%</strong> (test set, 92.7% training → overfitting detectado)</li>
+        <li><strong>F1-Score macro = 0.44</strong> (promedio armónico de precision/recall)</li>
+        <li><strong>Precision por clase:</strong> Bajo (66%), Medio (40%), Alto (35%), Viral (28%)</li>
+    </ul>
+    
+    <p><strong>Arquitectura:</strong></p>
+    <ul>
+        <li><strong>Light Gradient Boosting Machine:</strong> Variante de gradient boosting optimizada para grandes datasets. Más rápida que XGBoost gracias a técnicas de optimización avanzadas.</li>
+        <li><strong>Histogram-based learning:</strong> Agrupa valores continuos en bins discretos (histogramas). Reduce coste computacional y memoria, acelerando significativamente el entrenamiento.</li>
+        <li><strong>Leaf-wise growth:</strong> Estrategia de crecimiento del árbol que elige la hoja con mayor ganancia para dividir (vs. level-wise que crece por niveles). Más eficiente pero propenso a overfitting.</li>
+        <li><strong>Class weight balancing:</strong> Ajusta la importancia de cada clase según su frecuencia. Da más peso a clases minoritarias (ej: Viral) para evitar sesgo hacia clases mayoritarias.</li>
+        <li><strong>GOSS (Gradient-based One-Side Sampling):</strong> Muestrea instancias manteniendo las de mayor gradiente (más difíciles de predecir) y descartando aleatoriamente las fáciles, mejorando eficiencia.</li>
+        <li><strong>EFB (Exclusive Feature Bundling):</strong> Agrupa features mutuamente exclusivas para reducir dimensionalidad sin perder información, acelerando entrenamiento.</li>
+    </ul>
+    
+    <p><strong>Aplicación:</strong> Clasificación del nivel de éxito esperado</p>
+    
+    <p style='color: #d84315; margin-top: 10px;'><strong>⚠️ Nota:</strong> Gap significativo train-test indica memorización de patrones específicos del training set</p>
     </div>
     """, unsafe_allow_html=True)
 

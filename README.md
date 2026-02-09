@@ -14,7 +14,6 @@ Project_TiktokYoutube_Trends_Food/
 │
 ├── 02_Modelo_Keras_DeepLearning/      # Modelo Deep Learning (Multi-Output)
 │   ├── youtube_ml_predictor.ipynb     # Notebook principal del modelo Keras
-│   ├── title_embeddings.ipynb         # Análisis de embeddings de títulos
 │   ├── best_model.keras               # Mejor modelo guardado (checkpoint)
 │   ├── youtube_predictor_final.keras  # Modelo final entrenado
 │   ├── scaler.pkl                     # StandardScaler para normalización
