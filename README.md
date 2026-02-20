@@ -1,6 +1,42 @@
 # 🎥 YouTube Trends Food - Proyecto de Machine Learning
 
+Este proyecto consta de 2 partes. 
+  * PowerBI para analisis de datos sobre videos del 2025
+  * Machine Learning para predecir el éxito de un video
+
+## 🎯 Power BI
+https://app.powerbi.com/view?r=eyJrIjoiZjdmNjM1OWEtZWIzOC00YzAyLTgyODYtNmNmZDBlNWJkMzE1IiwidCI6IjhhZWJkZGI2LTM0MTgtNDNhMS1hMjU1LWI5NjQxODZlY2M2NCIsImMiOjl9
+### Imagenes del frontend
+![Dashboard de GaiaMare](01_ETL_PowerBI/powerBi1.png)
+
+![Dashboard de GaiaMare](01_ETL_PowerBI/powerBi2.png)
+
+## ML
+
+
+## 🎯 Descripción de los Modelos
+
+### **Modelo 1: Keras Deep Learning** (02_Modelo_Keras_DeepLearning/)
+- **Tipo:** Red Neuronal Multi-Output
+- **Target:** Predicción simultánea de `views`, `likes`, `comments`
+- **Features:** Embeddings de títulos (SentenceTransformer) + features numéricas
+- **Arquitectura:** Dense layers + Dropout + Batch Normalization
+- **Resultados:** R² muy bajo (~0-0.03), no apto para producción
+
+### **Modelo 2: XGBoost/LightGBM Ensemble** (03_Modelo_XGBoost_LightGBM/)
+- **Tipo:** Ensemble (Gradient Boosting)
+- **Target:** 
+  - Regresión: `engagement_rate`
+  - Clasificación: Nivel de éxito (Bajo/Medio/Alto/Viral)
+- **Features:** 35+ features engineered (sentiment, temporal, canal, contenido)
+- **Interpretabilidad:** Feature importance + SHAP values
+- **Resultados:** R² = 0.0726, Accuracy = 43.9% (mejor que Keras)
+
+---
+
 ## 📁 Estructura del Proyecto
+<details>
+  <summary>Ver</summary>
 
 ```
 Project_TiktokYoutube_Trends_Food/
@@ -50,28 +86,7 @@ Project_TiktokYoutube_Trends_Food/
 ├── .gitignore                         # Archivos ignorados por Git
 └── Memoria Técnica.docx               # Memoria técnica del proyecto
 ```
-
----
-
-## 🎯 Descripción de los Modelos
-
-### **Modelo 1: Keras Deep Learning** (02_Modelo_Keras_DeepLearning/)
-- **Tipo:** Red Neuronal Multi-Output
-- **Target:** Predicción simultánea de `views`, `likes`, `comments`
-- **Features:** Embeddings de títulos (SentenceTransformer) + features numéricas
-- **Arquitectura:** Dense layers + Dropout + Batch Normalization
-- **Resultados:** R² muy bajo (~0-0.03), no apto para producción
-
-### **Modelo 2: XGBoost/LightGBM Ensemble** (03_Modelo_XGBoost_LightGBM/)
-- **Tipo:** Ensemble (Gradient Boosting)
-- **Target:** 
-  - Regresión: `engagement_rate`
-  - Clasificación: Nivel de éxito (Bajo/Medio/Alto/Viral)
-- **Features:** 35+ features engineered (sentiment, temporal, canal, contenido)
-- **Interpretabilidad:** Feature importance + SHAP values
-- **Resultados:** R² = 0.0726, Accuracy = 43.9% (mejor que Keras)
-
----
+</details>
 
 ## 🚀 Cómo Usar
 

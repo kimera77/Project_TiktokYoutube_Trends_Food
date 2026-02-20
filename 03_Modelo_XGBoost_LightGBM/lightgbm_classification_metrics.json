@@ -1,20 +1,20 @@
 {
     "model_type": "LightGBM Classifier",
     "train": {
-        "accuracy": 0.9104504183727968
+        "accuracy": 0.8662934513735191
     },
     "test": {
-        "accuracy": 0.47259786476868326,
-        "f1_macro": 0.3540101885396895,
-        "f1_weighted": 0.4788432601120104
+        "accuracy": 0.43206663196251954,
+        "f1_macro": 0.33489672870006004,
+        "f1_weighted": 0.4459462593565627
     },
     "class_distribution": {
-        "0": 774,
-        "1": 228,
-        "3": 214,
-        "2": 189
+        "0": 1051,
+        "1": 322,
+        "3": 294,
+        "2": 254
     },
     "n_features": 34,
-    "n_samples_train": 5617,
-    "n_samples_test": 1405
+    "n_samples_train": 7681,
+    "n_samples_test": 1921
 }
